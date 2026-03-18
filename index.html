@@ -1,546 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Student Master Planner</title>
-
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
-
-    <style>
-        :root {
-            --bg: #f4f7f6;
-            --surface: #ffffff;
-            --primary: #3498db;
-            --danger: #e74c3c;
-            --success: #2ecc71;
-            --text: #2c3e50;
-            --border: #dfe6e9;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* LAYOUT CONTAINER */
-        .app-container {
-            display: flex;
-            flex: 1;
-            height: 100%;
-            overflow: hidden;
-            /* Prevent body scroll on Desktop */
-        }
-
-        /* --- SIDEBAR (Controls) --- */
-        aside {
-            width: 320px;
-            background: var(--surface);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            z-index: 10;
-            overflow-y: auto;
-            /* Allow scrolling inside sidebar */
-        }
-
-        h1 {
-            font-size: 1.2rem;
-            margin: 0 0 15px 0;
-            color: var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .stat-box {
-            background: #f1f2f6;
-            border-radius: 8px;
-            padding: 10px 5px;
-        }
-
-        .stat-num {
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: var(--primary);
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            color: #7f8c8d;
-            letter-spacing: 0.5px;
-            margin-top: 3px;
-        }
-
-        /* Form Elements */
-        .control-panel {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-        }
-
-        .form-group {
-            margin-bottom: 12px;
-        }
-
-        label {
-            display: block;
-            font-size: 0.75rem;
-            margin-bottom: 5px;
-            color: #666;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        input,
-        select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ced6e0;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            background: white;
-        }
-
-        /* Color Picker */
-        .color-options {
-            display: flex;
-            gap: 12px;
-            margin-top: 8px;
-            justify-content: space-between;
-        }
-
-        .color-circle {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 3px solid transparent;
-            transition: all 0.2s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .color-circle:hover {
-            transform: scale(1.1);
-        }
-
-        .color-circle.selected {
-            border-color: #333;
-            transform: scale(1.1);
-        }
-
-        /* Add Button */
-        button.add-btn {
-            width: 100%;
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 10px;
-            font-size: 1rem;
-            transition: background 0.2s;
-        }
-
-        button.add-btn:hover {
-            background: #2980b9;
-        }
-
-        /* Backlog List */
-        .backlog {
-            margin-top: 20px;
-            border-top: 2px dashed var(--border);
-            padding-top: 15px;
-        }
-
-        .backlog h3 {
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-            color: #7f8c8d;
-        }
-
-        .task-list-container {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        /* Scroll internal list if too long */
-
-        .task-item {
-            background: #fff;
-            border: 1px solid var(--border);
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.9rem;
-            border-left: 5px solid #ccc;
-            cursor: pointer;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
-
-        .task-item.completed {
-            opacity: 0.6;
-            text-decoration: line-through;
-            background: #f8f9fa;
-        }
-
-        .delete-btn {
-            background: none;
-            border: none;
-            color: #e74c3c;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0 8px;
-        }
-
-        /* --- MAIN CALENDAR AREA --- */
-        main {
-            flex: 1;
-            padding: 20px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        #calendar {
-            flex: 1;
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            min-height: 0;
-            /* Important for flex child scroll */
-        }
-
-        /* --- MOBILE RESPONSIVE --- */
-        @media (max-width: 768px) {
-            .app-container {
-                flex-direction: column;
-                height: auto;
-                /* Allow full page scroll on mobile */
-                overflow-y: auto;
-            }
-
-            /* On Mobile: Calendar First, Controls Second */
-            main {
-                order: 1;
-                height: 70vh;
-                /* Fixed height for calendar on mobile */
-                padding: 10px;
-            }
-
-            aside {
-                order: 2;
-                width: 100%;
-                border-right: none;
-                border-top: 1px solid var(--border);
-                padding: 20px 15px;
-                height: auto;
-                overflow: visible;
-            }
-
-            /* Bigger touch targets */
-            .color-circle {
-                width: 40px;
-                height: 40px;
-            }
-
-            input,
-            button.add-btn {
-                font-size: 16px;
-                /* Prevent zoom on iOS */
-            }
-
-            /* Simplify Calendar Header on small screens */
-            .fc-toolbar-title {
-                font-size: 1rem !important;
-            }
-
-            .fc-button {
-                padding: 4px 8px !important;
-                font-size: 0.8rem !important;
-            }
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxima - Productivity Hub</title>
+    <!-- Modern Google Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
 
-    <div class="app-container">
-
-        <aside>
-            <h1>📅 Planner</h1>
-
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <span class="stat-num" id="count-day">0</span>
-                    <span class="stat-label">Today</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-num" id="count-week">0</span>
-                    <span class="stat-label">Week</span>
-                </div>
-                <div class="stat-box">
-                    <span class="stat-num" id="count-month">0</span>
-                    <span class="stat-label">Month</span>
-                </div>
-            </div>
-
-            <div class="control-panel">
-                <div class="form-group">
-                    <label>New Task</label>
-                    <input type="text" id="taskTitle" placeholder="Enter task name...">
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" id="taskDate">
+    <!-- App Container -->
+    <div id="app" class="app-container">
+        
+        <!-- Login Screen -->
+        <section id="login-screen" class="screen active">
+            <div class="login-wrapper">
+                <div class="login-card glass-panel">
+                    <div class="brand">
+                        <i class="fa-solid fa-layer-group brand-icon"></i>
+                        <h1>Proxima</h1>
                     </div>
-                    <div class="form-group">
-                        <label>Time</label>
-                        <input type="time" id="taskTime">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Category</label>
-                    <div class="color-options">
-                        <div class="color-circle selected" style="background:#e74c3c" onclick="selectColor('#e74c3c')"
-                            title="Data Structures"></div>
-                        <div class="color-circle" style="background:#2ecc71" onclick="selectColor('#2ecc71')"
-                            title="Mobile Dev"></div>
-                        <div class="color-circle" style="background:#3498db" onclick="selectColor('#3498db')"
-                            title="Innovation"></div>
-                        <div class="color-circle" style="background:#9b59b6" onclick="selectColor('#9b59b6')"
-                            title="Personal"></div>
+                    <p class="subtitle">Welcome to your productivity hub</p>
+                    
+                    <form id="login-form">
+                        <div class="input-group">
+                            <label for="username">Username</label>
+                            <div class="input-with-icon">
+                                <i class="fa-regular fa-user"></i>
+                                <input type="text" id="username" placeholder="e.g. user1" required autocomplete="username">
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="password">Password</label>
+                            <div class="input-with-icon">
+                                <i class="fa-solid fa-lock"></i>
+                                <input type="password" id="password" placeholder="e.g. pass1" required autocomplete="current-password">
+                            </div>
+                        </div>
+                        <div class="error-msg" id="login-error">Invalid credentials</div>
+                        <button type="submit" class="btn-primary login-btn">
+                            Sign In <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+                    
+                    <div class="login-hint">
+                        <p>Demo Accounts:</p>
+                        <ul>
+                            <li>user1 / pass1</li>
+                            <li>user2 / pass2</li>
+                        </ul>
                     </div>
                 </div>
-
-                <button class="add-btn" onclick="addNewTask()">+ Add Task</button>
             </div>
+        </section>
 
-            <div class="backlog">
-                <h3>📝 Task List</h3>
-                <div id="taskList" class="task-list-container">
+        <!-- Dashboard Screen -->
+        <section id="dashboard-screen" class="screen">
+            <!-- Sidebar for Todos -->
+            <aside class="sidebar glass-panel-dark">
+                <div class="sidebar-header">
+                    <div class="brand">
+                        <i class="fa-solid fa-layer-group brand-icon"></i>
+                        <h2>Proxima</h2>
+                    </div>
+                    <button id="mobile-menu-btn" class="icon-btn mobile-only"><i class="fa-solid fa-bars"></i></button>
                 </div>
+                
+                <div class="todo-section">
+                    <div class="section-title">
+                        <h3><i class="fa-solid fa-check-square"></i> Tasks</h3>
+                        <span id="task-count" class="badge">0</span>
+                    </div>
+                    
+                    <form id="todo-form" class="add-item-form">
+                        <input type="text" id="new-todo-input" placeholder="Add a new task..." required>
+                        <button type="submit" class="icon-btn add-btn"><i class="fa-solid fa-plus"></i></button>
+                    </form>
+                    
+                    <ul id="todo-list" class="todo-list">
+                        <!-- Todo items injected by JS -->
+                    </ul>
+                </div>
+                
+                <div class="user-profile">
+                    <div class="avatar">
+                        <span id="user-initial">U</span>
+                    </div>
+                    <div class="user-info">
+                        <p id="current-username" class="username">user1</p>
+                        <button id="logout-btn" class="logout-link">Sign Out</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area - Calendar -->
+            <main class="main-content">
+                <header class="top-header">
+                    <div class="calendar-controls">
+                        <button id="today-btn" class="btn-secondary">Today</button>
+                        <div class="month-nav">
+                            <button id="prev-month" class="icon-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button id="next-month" class="icon-btn"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <h2 id="current-month-year" class="month-title">January 2024</h2>
+                    </div>
+                    <div class="header-actions">
+                        <button id="add-event-btn" class="btn-primary">
+                            <i class="fa-solid fa-plus"></i> New Event
+                        </button>
+                    </div>
+                </header>
+                
+                <div class="calendar-wrapper glass-panel">
+                    <div class="calendar-weekdays">
+                        <div>Sun</div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
+                    </div>
+                    <div id="calendar-grid" class="calendar-grid">
+                        <!-- Calendar cells injected by JS -->
+                    </div>
+                </div>
+            </main>
+        </section>
+        
+        <!-- Add Event Modal -->
+        <div id="event-modal" class="modal-overlay hidden">
+            <div class="modal glass-panel">
+                <div class="modal-header">
+                    <h3>Add Event</h3>
+                    <button class="icon-btn close-modal-btn"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <form id="event-form">
+                    <div class="input-group">
+                        <label for="event-title">Event Title</label>
+                        <input type="text" id="event-title" required placeholder="Design Review">
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group half">
+                            <label for="event-date">Date</label>
+                            <input type="date" id="event-date" required>
+                        </div>
+                        <div class="input-group half">
+                            <label for="event-time">Time</label>
+                            <input type="time" id="event-time" required>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="event-color">Color Label</label>
+                        <div class="color-picker" id="color-picker">
+                            <div class="color-option" data-color="#3b82f6" style="background-color: #3b82f6;" title="Blue"></div>
+                            <div class="color-option" data-color="#10b981" style="background-color: #10b981;" title="Green"></div>
+                            <div class="color-option" data-color="#f59e0b" style="background-color: #f59e0b;" title="Yellow"></div>
+                            <div class="color-option active" data-color="#ef4444" style="background-color: #ef4444;" title="Red"></div>
+                            <div class="color-option" data-color="#8b5cf6" style="background-color: #8b5cf6;" title="Purple"></div>
+                        </div>
+                        <input type="hidden" id="event-color-value" value="#ef4444">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary close-modal-btn">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Event</button>
+                    </div>
+                </form>
             </div>
-        </aside>
-
-        <main>
-            <div id='calendar'></div>
-        </main>
-
+        </div>
+        
     </div>
 
-    <script>
-        let tasks = JSON.parse(localStorage.getItem('myTasksV3')) || [];
-        let selectedColor = '#e74c3c';
-        let calendar;
-
-        // Fixed Class Schedule
-        const classSchedule = [
-            { title: 'Mobile Dev', daysOfWeek: [3], startTime: '08:00', endTime: '12:00', color: '#2ecc71', editable: false },
-            { title: 'Innovation', daysOfWeek: [4], startTime: '08:00', endTime: '12:00', color: '#3498db', editable: false },
-            { title: 'Data Structures', daysOfWeek: [4], startTime: '13:00', endTime: '17:00', color: '#e74c3c', editable: false },
-        ];
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const calendarEl = document.getElementById('calendar');
-
-            // Detect mobile to set default view
-            const isMobile = window.innerWidth < 768;
-
-            calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: isMobile ? 'listWeek' : 'dayGridMonth', // List view is better on mobile
-                headerToolbar: {
-                    left: 'prev,next',
-                    center: 'title',
-                    right: isMobile ? 'listWeek,timeGridDay' : 'dayGridMonth,timeGridWeek,timeGridDay'
-                },
-                height: '100%',
-                navLinks: true,
-                editable: true,
-                dayMaxEvents: true,
-                events: generateEvents,
-                eventClick: handleEventClick,
-                eventDrop: handleEventDrop
-            });
-
-            calendar.render();
-            renderSidebarList();
-            updateStats();
-        });
-
-        function generateEvents(info, successCallback) {
-            let events = [...classSchedule];
-            tasks.forEach(task => {
-                if (!task.completed && task.date) {
-                    events.push({
-                        id: task.id,
-                        title: task.title,
-                        start: task.time ? `${task.date}T${task.time}` : task.date,
-                        color: task.color,
-                        allDay: !task.time
-                    });
-                }
-            });
-            successCallback(events);
-        }
-
-        function addNewTask() {
-            const titleInput = document.getElementById('taskTitle');
-            const dateInput = document.getElementById('taskDate');
-            const timeInput = document.getElementById('taskTime');
-
-            if (!titleInput.value.trim()) return alert("Enter a task name!");
-
-            const newTask = {
-                id: Date.now().toString(),
-                title: titleInput.value.trim(),
-                date: dateInput.value || null,
-                time: timeInput.value || null,
-                color: selectedColor,
-                completed: false
-            };
-
-            tasks.push(newTask);
-            saveAndRefresh();
-
-            // Reset fields
-            titleInput.value = '';
-        }
-
-        function handleEventClick(info) {
-            if (info.event.id && confirm(`Complete "${info.event.title}"?`)) {
-                tasks.find(t => t.id === info.event.id).completed = true;
-                saveAndRefresh();
-            }
-        }
-
-        function handleEventDrop(info) {
-            if (!info.event.id) return;
-            const task = tasks.find(t => t.id === info.event.id);
-            if (task) {
-                const d = info.event.start;
-                // Format date as YYYY-MM-DD manually to avoid timezone issues
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                task.date = `${year}-${month}-${day}`;
-
-                if (task.time && !info.event.allDay) {
-                    const hours = String(d.getHours()).padStart(2, '0');
-                    const mins = String(d.getMinutes()).padStart(2, '0');
-                    task.time = `${hours}:${mins}`;
-                } else if (info.event.allDay) {
-                    task.time = null;
-                }
-                saveAndRefresh();
-            }
-        }
-
-        function renderSidebarList() {
-            const container = document.getElementById('taskList');
-            container.innerHTML = '';
-
-            tasks.filter(t => !t.completed).forEach(task => {
-                const div = document.createElement('div');
-                div.className = 'task-item';
-                div.style.borderLeftColor = task.color;
-                div.innerHTML = `
-                <div>
-                    <div style="font-weight:600">${task.title}</div>
-                    <div style="font-size:0.75rem; color:#666">
-                        ${task.date || 'No Date'} ${task.time ? '@ ' + task.time : ''}
-                    </div>
-                </div>
-                <button class="delete-btn" onclick="deleteTask('${task.id}')">×</button>
-            `;
-                // Click to jump to date
-                div.onclick = (e) => {
-                    if (e.target.tagName !== 'BUTTON' && task.date) {
-                        calendar.gotoDate(task.date);
-                        if (window.innerWidth < 768) window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }
-                };
-                container.appendChild(div);
-            });
-        }
-
-        function deleteTask(id) {
-            tasks = tasks.filter(t => t.id !== id);
-            saveAndRefresh();
-        }
-
-        function selectColor(color) {
-            selectedColor = color;
-            document.querySelectorAll('.color-circle').forEach(c => c.classList.remove('selected'));
-            event.target.classList.add('selected');
-        }
-
-        function saveAndRefresh() {
-            localStorage.setItem('myTasksV3', JSON.stringify(tasks));
-            calendar.refetchEvents();
-            renderSidebarList();
-            updateStats();
-        }
-
-        function updateStats() {
-            const now = new Date();
-            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-            const endOfDay = startOfDay + 86400000;
-
-            // Simple approx logic for demo
-            let d = 0, w = 0, m = 0;
-
-            tasks.forEach(t => {
-                if (t.completed || !t.date) return;
-                const tTime = new Date(t.date).getTime();
-
-                if (tTime >= startOfDay && tTime < endOfDay) d++;
-
-                const daysDiff = (tTime - startOfDay) / (1000 * 60 * 60 * 24);
-                if (daysDiff >= 0 && daysDiff <= 7) w++;
-                if (daysDiff >= 0 && daysDiff <= 30) m++;
-            });
-
-            document.getElementById('count-day').innerText = d;
-            document.getElementById('count-week').innerText = w;
-            document.getElementById('count-month').innerText = m;
-        }
-    </script>
-
+    <script src="app.js"></script>
 </body>
-
 </html>
