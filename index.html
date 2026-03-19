@@ -19,34 +19,27 @@
     <div id="app" class="app-container">
         
         <!-- Login Screen -->
-        <section id="login-screen" class="screen active">
+        <section id="login-screen" class="screen active" style="overflow: hidden;">
             <button class="icon-btn theme-toggle" style="position: absolute; top: 1.5rem; right: 1.5rem;" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
             <div class="login-wrapper">
-                <div class="login-card glass-panel">
-                    <div class="brand">
+                <div class="login-card glass-panel" style="text-align: center;">
+                    <div class="brand" style="justify-content: center; margin-bottom: 1rem;">
                         <i class="fa-solid fa-layer-group brand-icon"></i>
                         <h1>dao hub</h1>
                     </div>
-                    <p class="subtitle">Welcome to dao hub</p>
                     
                     <form id="login-form">
                         <div class="input-group">
-                            <label for="username">Username</label>
-                            <div class="input-with-icon">
-                                <i class="fa-regular fa-user"></i>
-                                <input type="text" id="username" placeholder="e.g. user1" required autocomplete="username">
-                            </div>
+                            <label for="username" style="display: none;">Username</label>
+                            <input type="text" id="username" placeholder="Username" required autocomplete="username" style="text-align: center; width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem 1rem; border-radius: var(--radius-md); transition: var(--transition);">
                         </div>
                         <div class="input-group">
-                            <label for="password">Password</label>
-                            <div class="input-with-icon">
-                                <i class="fa-solid fa-lock"></i>
-                                <input type="password" id="password" placeholder="e.g. pass1" required autocomplete="current-password">
-                            </div>
+                            <label for="password" style="display: none;">Password</label>
+                            <input type="password" id="password" placeholder="Password" required autocomplete="current-password" style="text-align: center; width: 100%; background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.75rem 1rem; border-radius: var(--radius-md); transition: var(--transition);">
                         </div>
                         <div class="error-msg" id="login-error">Invalid credentials</div>
                         <button type="submit" class="btn-primary login-btn">
-                            Sign In <i class="fa-solid fa-arrow-right"></i>
+                            Sign In
                         </button>
                     </form>
                     
@@ -93,6 +86,14 @@
                         <button class="app-icon" id="gfqol-app-btn" title="Period Tracker">
                             <i class="fa-solid fa-heart" style="color: var(--danger);"></i>
                             <span>Gf qol</span>
+                        </button>
+                        <button class="app-icon" id="pomodoro-app-btn" title="Pomodoro Timer">
+                            <i class="fa-solid fa-clock" style="color: var(--secondary);"></i>
+                            <span>Timer</span>
+                        </button>
+                        <button class="app-icon" id="shortcuts-app-btn" title="Shortcuts">
+                            <i class="fa-solid fa-link" style="color: var(--primary);"></i>
+                            <span>Shortcuts</span>
                         </button>
                     </div>
                 </div>
@@ -230,6 +231,54 @@
             </div>
         </div>
         
+    </div>
+
+    <!-- Pomodoro Timer Floating Window -->
+    <div id="pomodoro-window" class="glass-panel floating-window hidden">
+        <div class="window-header" id="pomodoro-header">
+            <h3><i class="fa-solid fa-clock" style="color: var(--secondary);"></i> Pomodoro</h3>
+            <button class="icon-btn close-pomodoro-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="window-content">
+            <div class="timer-controls-top">
+                <button class="btn-secondary active" id="mode-work">Work (25m)</button>
+                <button class="btn-secondary" id="mode-rest">Rest (5m)</button>
+                <button class="btn-secondary" id="mode-custom">Custom</button>
+            </div>
+            <div id="custom-time-input" class="hidden" style="margin-top: 1rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%;">
+                <input type="number" id="custom-minutes" value="15" min="1" max="120" style="width: 80px; padding: 0.5rem; background: var(--bg-color); color: var(--text-main); border: 1px solid var(--border-color); border-radius: var(--radius-md);"> min
+            </div>
+            <div class="circle-timer-container">
+                <svg class="circle-timer-svg" viewBox="0 0 100 100">
+                    <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
+                    <circle class="timer-progress" id="timer-progress" cx="50" cy="50" r="45"></circle>
+                </svg>
+                <div class="timer-display" id="timer-display">25:00</div>
+            </div>
+            <div class="timer-controls-bottom">
+                <button class="btn-primary" id="start-timer-btn" style="width: 100px;">Start</button>
+                <button class="btn-secondary" id="reset-timer-btn" style="width: 100px;">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shortcuts Floating Window -->
+    <div id="shortcuts-window" class="glass-panel floating-window hidden" style="width: 340px; height: 420px;">
+        <div class="window-header" id="shortcuts-header">
+            <h3><i class="fa-solid fa-link" style="color: var(--primary);"></i> Shortcuts</h3>
+            <button class="icon-btn close-shortcuts-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="window-content" style="padding: 1rem; overflow-y: auto; flex: 1; align-items: stretch; display: flex; flex-direction: column; gap: 1rem;">
+            <div id="shortcuts-grid" class="shortcuts-grid">
+                <!-- Injected via JS -->
+            </div>
+            
+            <form id="add-shortcut-form" style="margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <input type="text" id="shortcut-name" placeholder="Name" required style="width: 100%; height: 36px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem; border-radius: var(--radius-md);">
+                <input type="url" id="shortcut-url" placeholder="https://..." required style="width: 100%; height: 36px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.5rem; border-radius: var(--radius-md);">
+                <button type="submit" class="btn-primary" style="padding: 0.5rem;">Add Shortcut</button>
+            </form>
+        </div>
     </div>
 
     <script src="accounts.js"></script>

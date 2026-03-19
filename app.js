@@ -10,7 +10,15 @@ const App = {
         selectedDate: new Date(), // Used for adding events
         todos: [],
         events: [],
-        periodTracking: { periods: [], showCalendar: true }
+        periodTracking: { periods: [], showCalendar: true },
+        pomodoro: {
+            mode: 'work',
+            timeLeft: 25 * 60,
+            totalTime: 25 * 60,
+            timerId: null,
+            isRunning: false
+        },
+        shortcuts: []
     },
 
     // DOM Elements
@@ -65,6 +73,31 @@ const App = {
             end: document.getElementById('period-end'),
             list: document.getElementById('gfqol-period-list'),
             showCalendar: document.getElementById('show-predicted-period')
+        },
+        pomodoro: {
+            appBtn: document.getElementById('pomodoro-app-btn'),
+            window: document.getElementById('pomodoro-window'),
+            header: document.getElementById('pomodoro-header'),
+            closeBtn: document.querySelector('.close-pomodoro-btn'),
+            modeWork: document.getElementById('mode-work'),
+            modeRest: document.getElementById('mode-rest'),
+            modeCustom: document.getElementById('mode-custom'),
+            customInputArea: document.getElementById('custom-time-input'),
+            customMinutes: document.getElementById('custom-minutes'),
+            timerDisplay: document.getElementById('timer-display'),
+            startBtn: document.getElementById('start-timer-btn'),
+            resetBtn: document.getElementById('reset-timer-btn'),
+            progressCircle: document.getElementById('timer-progress')
+        },
+        shortcuts: {
+            appBtn: document.getElementById('shortcuts-app-btn'),
+            window: document.getElementById('shortcuts-window'),
+            header: document.getElementById('shortcuts-header'),
+            closeBtn: document.querySelector('.close-shortcuts-btn'),
+            grid: document.getElementById('shortcuts-grid'),
+            addForm: document.getElementById('add-shortcut-form'),
+            nameInput: document.getElementById('shortcut-name'),
+            urlInput: document.getElementById('shortcut-url')
         }
     },
 
@@ -146,6 +179,28 @@ const App = {
                 this.elements.modal.colorValue.value = e.target.dataset.color;
             });
         });
+
+        // Pomodoro Timer
+        if (this.elements.pomodoro.appBtn) {
+            this.elements.pomodoro.appBtn.addEventListener('click', () => this.togglePomodoroWindow());
+            this.elements.pomodoro.closeBtn.addEventListener('click', () => this.closePomodoroWindow());
+            this.elements.pomodoro.modeWork.addEventListener('click', () => this.setPomodoroMode('work'));
+            this.elements.pomodoro.modeRest.addEventListener('click', () => this.setPomodoroMode('rest'));
+            this.elements.pomodoro.modeCustom.addEventListener('click', () => this.setPomodoroMode('custom'));
+            this.elements.pomodoro.customMinutes.addEventListener('input', () => this.updateCustomTime());
+            this.elements.pomodoro.startBtn.addEventListener('click', () => this.togglePomodoroTimer());
+            this.elements.pomodoro.resetBtn.addEventListener('click', () => this.resetPomodoroTimer());
+            this.initPomodoroDraggable();
+            this.updatePomodoroDisplay();
+        }
+
+        // Shortcuts Widget
+        if (this.elements.shortcuts.appBtn) {
+            this.elements.shortcuts.appBtn.addEventListener('click', () => this.toggleShortcutsWindow());
+            this.elements.shortcuts.closeBtn.addEventListener('click', () => this.closeShortcutsWindow());
+            this.elements.shortcuts.addForm.addEventListener('submit', (e) => this.handleAddShortcut(e));
+            this.initShortcutsDraggable();
+        }
     },
 
     // --- Authentication --- //
@@ -191,6 +246,7 @@ const App = {
         this.state.todos = [];
         this.state.events = [];
         this.state.periodTracking = { periods: [], showCalendar: true };
+        this.state.shortcuts = [];
     },
 
     showDashboard() {
@@ -229,16 +285,20 @@ const App = {
                     delete this.state.periodTracking.start;
                     delete this.state.periodTracking.end;
                 }
+                
+                this.state.shortcuts = parsed.shortcuts || [];
             } catch (e) {
                 console.error("Error parsing stored data", e);
                 this.state.todos = [];
                 this.state.events = [];
                 this.state.periodTracking = { periods: [], showCalendar: true };
+                this.state.shortcuts = [];
             }
         } else {
             this.state.todos = [];
             this.state.events = [];
             this.state.periodTracking = { periods: [], showCalendar: true };
+            this.state.shortcuts = [];
         }
     },
 
@@ -249,7 +309,8 @@ const App = {
         localStorage.setItem(dataKey, JSON.stringify({
             todos: this.state.todos,
             events: this.state.events,
-            periodTracking: this.state.periodTracking
+            periodTracking: this.state.periodTracking,
+            shortcuts: this.state.shortcuts
         }));
     },
 
@@ -670,6 +731,276 @@ const App = {
         }
 
         return null;
+    },
+
+    // --- Pomodoro Management --- //
+
+    togglePomodoroWindow() {
+        if (this.elements.pomodoro.window.classList.contains('hidden')) {
+            this.elements.pomodoro.window.classList.remove('hidden');
+        } else {
+            this.closePomodoroWindow();
+        }
+    },
+
+    closePomodoroWindow() {
+        this.elements.pomodoro.window.classList.add('hidden');
+    },
+
+    setPomodoroMode(mode) {
+        if (this.state.pomodoro.isRunning) return; // Prevent change while running
+        
+        this.state.pomodoro.mode = mode;
+        
+        this.elements.pomodoro.modeWork.classList.remove('active');
+        this.elements.pomodoro.modeRest.classList.remove('active');
+        this.elements.pomodoro.modeCustom.classList.remove('active');
+        this.elements.pomodoro.customInputArea.classList.add('hidden');
+        
+        if (mode === 'work') {
+            this.elements.pomodoro.modeWork.classList.add('active');
+            this.state.pomodoro.totalTime = 25 * 60;
+        } else if (mode === 'rest') {
+            this.elements.pomodoro.modeRest.classList.add('active');
+            this.state.pomodoro.totalTime = 5 * 60;
+        } else if (mode === 'custom') {
+            this.elements.pomodoro.modeCustom.classList.add('active');
+            this.elements.pomodoro.customInputArea.classList.remove('hidden');
+            let mins = parseInt(this.elements.pomodoro.customMinutes.value) || 15;
+            this.state.pomodoro.totalTime = mins * 60;
+        }
+        
+        this.resetPomodoroTimer();
+    },
+
+    updateCustomTime() {
+        if (this.state.pomodoro.mode === 'custom' && !this.state.pomodoro.isRunning) {
+            let mins = parseInt(this.elements.pomodoro.customMinutes.value) || 15;
+            if (mins < 1) mins = 1;
+            if (mins > 120) mins = 120;
+            this.state.pomodoro.totalTime = mins * 60;
+            this.resetPomodoroTimer();
+        }
+    },
+
+    togglePomodoroTimer() {
+        if (this.state.pomodoro.isRunning) {
+            // Pause
+            clearInterval(this.state.pomodoro.timerId);
+            this.state.pomodoro.isRunning = false;
+            this.elements.pomodoro.startBtn.textContent = 'Resume';
+        } else {
+            // Start
+            this.state.pomodoro.isRunning = true;
+            this.elements.pomodoro.startBtn.textContent = 'Pause';
+            
+            this.state.pomodoro.timerId = setInterval(() => {
+                this.state.pomodoro.timeLeft--;
+                this.updatePomodoroDisplay();
+                
+                if (this.state.pomodoro.timeLeft <= 0) {
+                    this.pomodoroFinished();
+                }
+            }, 1000);
+        }
+    },
+
+    pomodoroFinished() {
+        clearInterval(this.state.pomodoro.timerId);
+        this.state.pomodoro.isRunning = false;
+        this.state.pomodoro.timeLeft = 0;
+        this.updatePomodoroDisplay();
+        this.elements.pomodoro.startBtn.textContent = 'Start';
+        // Auto reset after 3 seconds could be added, but manual reset is fine
+    },
+
+    resetPomodoroTimer() {
+        clearInterval(this.state.pomodoro.timerId);
+        this.state.pomodoro.isRunning = false;
+        this.state.pomodoro.timeLeft = this.state.pomodoro.totalTime;
+        this.elements.pomodoro.startBtn.textContent = 'Start';
+        this.updatePomodoroDisplay();
+    },
+
+    updatePomodoroDisplay() {
+        let minutes = Math.floor(this.state.pomodoro.timeLeft / 60);
+        let seconds = this.state.pomodoro.timeLeft % 60;
+        
+        // Handle negative time strictly by flooring to 0 just in case
+        if (minutes < 0) minutes = 0;
+        if (seconds < 0) seconds = 0;
+
+        this.elements.pomodoro.timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        
+        // Update Circle SVG
+        const pct = this.state.pomodoro.timeLeft / this.state.pomodoro.totalTime;
+        const targetOffset = 283 - (pct * 283);
+        this.elements.pomodoro.progressCircle.style.strokeDashoffset = targetOffset;
+    },
+
+    initPomodoroDraggable() {
+        const header = this.elements.pomodoro.header;
+        const windowEl = this.elements.pomodoro.window;
+        
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+
+        header.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            
+            // Get current transform value dynamically
+            const style = window.getComputedStyle(windowEl);
+            const matrix = new DOMMatrixReadOnly(style.transform);
+            initialX = matrix.m41;
+            initialY = matrix.m42;
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            windowEl.style.transform = `translate(${initialX + dx}px, ${initialY + dy}px)`;
+        };
+
+        const onMouseUp = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+    },
+
+    // --- Shortcuts Management --- //
+
+    toggleShortcutsWindow() {
+        if (this.elements.shortcuts.window.classList.contains('hidden')) {
+            this.elements.shortcuts.window.classList.remove('hidden');
+            this.renderShortcuts();
+        } else {
+            this.closeShortcutsWindow();
+        }
+    },
+
+    closeShortcutsWindow() {
+        this.elements.shortcuts.window.classList.add('hidden');
+    },
+
+    handleAddShortcut(e) {
+        e.preventDefault();
+        const name = this.elements.shortcuts.nameInput.value.trim();
+        let url = this.elements.shortcuts.urlInput.value.trim();
+        
+        if (!name || !url) return;
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+        }
+
+        let iconUrl = '';
+        try {
+            let domain = new URL(url).hostname;
+            iconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+        } catch (err) {
+            console.error("Invalid URL", err);
+        }
+
+        const newShortcut = {
+            id: Date.now().toString(),
+            name,
+            url,
+            icon: iconUrl
+        };
+
+        this.state.shortcuts.push(newShortcut);
+        this.saveUserData();
+        this.renderShortcuts();
+        
+        this.elements.shortcuts.addForm.reset();
+    },
+
+    deleteShortcut(id) {
+        this.state.shortcuts = this.state.shortcuts.filter(s => s.id !== id);
+        this.saveUserData();
+        this.renderShortcuts();
+    },
+
+    renderShortcuts() {
+        this.elements.shortcuts.grid.innerHTML = '';
+        
+        this.state.shortcuts.forEach(shortcut => {
+            const a = document.createElement('a');
+            a.className = 'shortcut-item';
+            a.href = shortcut.url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            
+            let iconHtml = shortcut.icon 
+                ? `<img src="${this.escapeHtml(shortcut.icon)}" alt="${this.escapeHtml(shortcut.name)}" style="width: 28px; height: 28px; margin-bottom: 0.25rem; border-radius: 4px; object-fit: contain;">`
+                : `<i class="fa-solid fa-link" style="font-size: 1.5rem; margin-bottom: 0.25rem; color: var(--primary);"></i>`;
+            
+            a.innerHTML = `
+                ${iconHtml}
+                <span>${this.escapeHtml(shortcut.name)}</span>
+                <button class="delete-shortcut-btn" data-id="${shortcut.id}" aria-label="Delete">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+            
+            this.elements.shortcuts.grid.appendChild(a);
+        });
+        
+        // Bind delete
+        this.elements.shortcuts.grid.querySelectorAll('.delete-shortcut-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault(); // prevent navigation
+                e.stopPropagation();
+                this.deleteShortcut(e.currentTarget.dataset.id);
+            });
+        });
+    },
+
+    initShortcutsDraggable() {
+        const header = this.elements.shortcuts.header;
+        const windowEl = this.elements.shortcuts.window;
+        
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+
+        header.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            
+            const style = window.getComputedStyle(windowEl);
+            const matrix = new DOMMatrixReadOnly(style.transform);
+            initialX = matrix.m41;
+            initialY = matrix.m42;
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            windowEl.style.transform = `translate(${initialX + dx}px, ${initialY + dy}px)`;
+        };
+
+        const onMouseUp = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
     },
 
     // --- Helpers --- //
