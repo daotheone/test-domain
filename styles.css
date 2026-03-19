@@ -2,12 +2,21 @@
    DESIGN SYSTEM & VARIABLES
 ========================================= */
 :root {
-    /* Colors */
-    --bg-dark: #0f172a;
-    --bg-darker: #020617;
+    /* Colors (Dark mode default) */
+    --bg-color: #121212;
+    --surface-color: #1e1e1e;
+    --border-color: #333333;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     
+    /* Maps to keep old utilities working smoothly */
+    --bg-dark: var(--bg-color);
+    --bg-darker: var(--bg-color);
+    --glass-bg: var(--surface-color);
+    --glass-border: var(--border-color);
+    --glass-bg-dark: var(--surface-color);
+    --glass-shadow: none;
+
     /* Accents */
     --primary: #6366f1;
     --primary-hover: #4f46e5;
@@ -17,22 +26,24 @@
     --warning: #f59e0b;
     --purple: #8b5cf6;
     
-    /* Glassmorphism */
-    --glass-bg: rgba(255, 255, 255, 0.05);
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --glass-bg-dark: rgba(0, 0, 0, 0.2);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    
     /* Typography */
     --font-heading: 'Outfit', sans-serif;
     --font-body: 'Outfit', sans-serif;
     
     /* Layout */
     --sidebar-width: 320px;
-    --radius-lg: 16px;
-    --radius-md: 12px;
-    --radius-sm: 8px;
-    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --radius-lg: 8px;
+    --radius-md: 4px;
+    --radius-sm: 2px;
+    --transition: 0.2s ease-in-out;
+}
+
+:root.light-mode {
+    --bg-color: #f3f4f6;
+    --surface-color: #ffffff;
+    --border-color: #e5e7eb;
+    --text-main: #111827;
+    --text-muted: #6b7280;
 }
 
 /* =========================================
@@ -46,15 +57,11 @@
 
 body {
     font-family: var(--font-body);
-    background-color: var(--bg-dark);
-    background-image: 
-        radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.15), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.15), transparent 25%);
-    background-size: cover;
-    background-attachment: fixed;
+    background-color: var(--bg-color);
     color: var(--text-main);
     min-height: 100vh;
     overflow-x: hidden;
+    transition: background-color var(--transition), color var(--transition);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -83,23 +90,18 @@ input {
    UTILITIES
 ========================================= */
 .glass-panel {
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    box-shadow: var(--glass-shadow);
 }
 
 .glass-panel-dark {
-    background: var(--glass-bg-dark);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-right: 1px solid var(--glass-border);
+    background: var(--surface-color);
+    border-right: 1px solid var(--border-color);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--purple));
+    background: var(--primary);
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: var(--radius-md);
@@ -109,12 +111,11 @@ input {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    border: 1px solid transparent;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    background: var(--primary-hover);
 }
 
 .btn-secondary {
@@ -128,7 +129,7 @@ input {
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-color);
 }
 
 .icon-btn {
@@ -143,7 +144,7 @@ input {
 }
 
 .icon-btn:hover {
-    background: var(--glass-bg);
+    background: var(--bg-color);
     color: var(--text-main);
 }
 
@@ -221,9 +222,6 @@ input {
 .brand-icon {
     font-size: 1.75rem;
     color: var(--primary);
-    background: linear-gradient(135deg, var(--primary), var(--purple));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
 }
 
 .login-card h1 {
@@ -262,8 +260,8 @@ input {
 
 .input-with-icon input {
     width: 100%;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--glass-border);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
     color: var(--text-main);
     padding: 0.75rem 1rem 0.75rem 2.5rem;
     border-radius: var(--radius-md);
@@ -272,8 +270,7 @@ input {
 
 .input-with-icon input:focus, .input-group input:focus {
     border-color: var(--primary);
-    background: rgba(0, 0, 0, 0.3);
-    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    background: var(--bg-color);
 }
 
 #login-form .login-btn {
@@ -361,8 +358,8 @@ input {
 
 .add-item-form input {
     flex: 1;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--glass-border);
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 0.6rem 1rem;
     color: var(--text-main);
@@ -403,8 +400,8 @@ input {
     align-items: flex-start;
     gap: 0.75rem;
     padding: 0.75rem;
-    background: var(--glass-bg);
-    border: 1px solid transparent;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     transition: var(--transition);
     animation: slideIn 0.3s ease;
@@ -416,8 +413,8 @@ input {
 }
 
 .todo-item:hover {
-    border-color: var(--glass-border);
-    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--primary);
+    background: var(--bg-color);
 }
 
 .todo-item.completed span {
@@ -476,6 +473,60 @@ input {
     color: var(--danger);
 }
 
+/* Apps Section */
+.apps-section {
+    padding: 1.5rem;
+    height: 180px; /* fixed height */
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    flex-direction: column;
+}
+
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    overflow-y: auto;
+    flex: 1;
+    padding-right: 0.5rem;
+}
+
+.app-grid::-webkit-scrollbar {
+    width: 4px;
+}
+.app-grid::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 4px;
+}
+
+.app-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 0.5rem;
+    color: var(--text-main);
+    transition: var(--transition);
+}
+
+.app-icon:hover {
+    background: var(--bg-color);
+    border-color: var(--primary);
+}
+
+.app-icon i {
+    font-size: 1.5rem;
+}
+
+.app-icon span {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
 /* User Profile Sidebar Bottom */
 .user-profile {
     padding: 1.5rem;
@@ -489,13 +540,13 @@ input {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--purple));
+    background: var(--primary);
+    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
     font-size: 1.2rem;
-    box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
 }
 
 .user-info {
@@ -579,9 +630,9 @@ input {
 }
 
 .calendar-cell {
-    background: rgba(0, 0, 0, 0.15);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-md);
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
     padding: 0.5rem;
     min-height: 100px;
     display: flex;
@@ -591,8 +642,8 @@ input {
 }
 
 .calendar-cell:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--bg-color);
+    border-color: var(--primary);
 }
 
 .calendar-cell.other-month {
@@ -607,6 +658,22 @@ input {
 .calendar-cell.today .date-num {
     background: var(--primary);
     color: white;
+}
+
+/* Period Tracking Highlights */
+.period-bleed {
+    background: rgba(239, 68, 68, 0.15); /* --danger with opacity */
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.period-luteal {
+    background: rgba(245, 158, 11, 0.15); /* --warning with opacity */
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.period-glow {
+    background: rgba(16, 185, 129, 0.15); /* --success with opacity */
+    border-color: rgba(16, 185, 129, 0.3);
 }
 
 .date-num {
@@ -711,8 +778,8 @@ input {
 
 .input-group input {
     width: 100%;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--glass-border);
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
     color: var(--text-main);
     padding: 0.75rem 1rem;
     border-radius: var(--radius-md);
@@ -720,8 +787,8 @@ input {
 }
 
 /* Dark theme overrides for date/time inputs */
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
+:root:not(.light-mode) input[type="date"]::-webkit-calendar-picker-indicator,
+:root:not(.light-mode) input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(1);
     opacity: 0.6;
     cursor: pointer;

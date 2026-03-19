@@ -9,13 +9,8 @@ const App = {
         currentDate: new Date(), // Used for calendar navigation
         selectedDate: new Date(), // Used for adding events
         todos: [],
-        events: []
-    },
-
-    // Hardcoded Users
-    users: {
-        'user1': 'pass1',
-        'user2': 'pass2'
+        events: [],
+        periodTracking: { periods: [], showCalendar: true }
     },
 
     // DOM Elements
@@ -60,15 +55,58 @@ const App = {
             colorPicker: document.getElementById('color-picker'),
             colorValue: document.getElementById('event-color-value'),
             openBtn: document.getElementById('add-event-btn')
+        },
+        gfqol: {
+            modal: document.getElementById('gfqol-modal'),
+            openBtn: document.getElementById('gfqol-app-btn'),
+            closeBtns: document.querySelectorAll('.close-gfqol-btn'),
+            addForm: document.getElementById('gfqol-add-form'),
+            start: document.getElementById('period-start'),
+            end: document.getElementById('period-end'),
+            list: document.getElementById('gfqol-period-list'),
+            showCalendar: document.getElementById('show-predicted-period')
         }
     },
 
     init() {
+        this.initTheme();
         this.bindEvents();
         this.checkAuth();
     },
 
+    initTheme() {
+        const storedTheme = localStorage.getItem('daohub_theme');
+        if (storedTheme === 'light') {
+            document.documentElement.classList.add('light-mode');
+        } else if (storedTheme === 'dark') {
+            document.documentElement.classList.remove('light-mode');
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            document.documentElement.classList.add('light-mode');
+        }
+        this.updateThemeIcons();
+    },
+
+    toggleTheme() {
+        document.documentElement.classList.toggle('light-mode');
+        const isLight = document.documentElement.classList.contains('light-mode');
+        localStorage.setItem('daohub_theme', isLight ? 'light' : 'dark');
+        this.updateThemeIcons();
+    },
+
+    updateThemeIcons() {
+        const isLight = document.documentElement.classList.contains('light-mode');
+        const btns = document.querySelectorAll('.theme-toggle i');
+        btns.forEach(icon => {
+            icon.className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun'; // Show moon in light mode normally, but sun in dark to toggle light
+        });
+    },
+
     bindEvents() {
+        // Theme toggles
+        document.querySelectorAll('.theme-toggle').forEach(btn => {
+            btn.addEventListener('click', () => this.toggleTheme());
+        });
+
         // Auth
         this.elements.login.form.addEventListener('submit', (e) => this.handleLogin(e));
         this.elements.dashboard.logoutBtn.addEventListener('click', () => this.handleLogout());
@@ -91,6 +129,14 @@ const App = {
         this.elements.modal.closeBtns.forEach(btn => btn.addEventListener('click', () => this.closeEventModal()));
         this.elements.modal.form.addEventListener('submit', (e) => this.handleAddEvent(e));
         
+        // Gf qol Modal
+        if (this.elements.gfqol.openBtn) {
+            this.elements.gfqol.openBtn.addEventListener('click', () => this.openGfqolModal());
+            this.elements.gfqol.closeBtns.forEach(btn => btn.addEventListener('click', () => this.closeGfqolModal()));
+            this.elements.gfqol.addForm.addEventListener('submit', (e) => this.handleAddGfqolPeriod(e));
+            this.elements.gfqol.showCalendar.addEventListener('change', () => this.handleToggleGfqolCalendar());
+        }
+        
         // Color Picker
         const colorOptions = this.elements.modal.colorPicker.querySelectorAll('.color-option');
         colorOptions.forEach(option => {
@@ -106,7 +152,7 @@ const App = {
 
     checkAuth() {
         const storedUser = localStorage.getItem('proxima_currentUser');
-        if (storedUser && this.users[storedUser]) {
+        if (storedUser && ACCOUNTS && ACCOUNTS[storedUser]) {
             this.state.currentUser = storedUser;
             this.showDashboard();
         } else {
@@ -119,7 +165,7 @@ const App = {
         const username = this.elements.login.username.value.trim();
         const password = this.elements.login.password.value;
 
-        if (this.users[username] && this.users[username] === password) {
+        if (typeof ACCOUNTS !== 'undefined' && ACCOUNTS[username] && ACCOUNTS[username] === password) {
             this.state.currentUser = username;
             localStorage.setItem('proxima_currentUser', username);
             this.elements.login.error.style.display = 'none';
@@ -144,6 +190,7 @@ const App = {
         this.elements.screens.login.classList.add('active');
         this.state.todos = [];
         this.state.events = [];
+        this.state.periodTracking = { periods: [], showCalendar: true };
     },
 
     showDashboard() {
@@ -170,14 +217,28 @@ const App = {
                 const parsed = JSON.parse(storedData);
                 this.state.todos = parsed.todos || [];
                 this.state.events = parsed.events || [];
+                this.state.periodTracking = parsed.periodTracking || { periods: [], showCalendar: true };
+                
+                // Migrate old state shape if exists
+                if (this.state.periodTracking.start && !this.state.periodTracking.periods) {
+                    this.state.periodTracking.periods = [{
+                        id: Date.now().toString(),
+                        start: this.state.periodTracking.start,
+                        end: this.state.periodTracking.end
+                    }];
+                    delete this.state.periodTracking.start;
+                    delete this.state.periodTracking.end;
+                }
             } catch (e) {
                 console.error("Error parsing stored data", e);
                 this.state.todos = [];
                 this.state.events = [];
+                this.state.periodTracking = { periods: [], showCalendar: true };
             }
         } else {
             this.state.todos = [];
             this.state.events = [];
+            this.state.periodTracking = { periods: [], showCalendar: true };
         }
     },
 
@@ -187,7 +248,8 @@ const App = {
         const dataKey = `proxima_data_${this.state.currentUser}`;
         localStorage.setItem(dataKey, JSON.stringify({
             todos: this.state.todos,
-            events: this.state.events
+            events: this.state.events,
+            periodTracking: this.state.periodTracking
         }));
     },
 
@@ -341,6 +403,13 @@ const App = {
 
             // Render events for this day
             const dayEvents = this.getEventsForDate(cellDate);
+            
+            // Add Gf qol highlights
+            const phase = this.getGfqolPhase(cellDate);
+            if (phase) {
+                cell.classList.add(`period-${phase}`);
+            }
+
             if (dayEvents.length > 0) {
                 const eventsList = document.createElement('div');
                 eventsList.className = 'events-list';
@@ -442,6 +511,165 @@ const App = {
         this.state.events = this.state.events.filter(e => e.id !== id);
         this.saveUserData();
         this.renderCalendar();
+    },
+
+    // --- Gf qol Management --- //
+
+    openGfqolModal() {
+        this.elements.gfqol.showCalendar.checked = this.state.periodTracking.showCalendar !== false;
+        this.renderGfqolPeriods();
+        this.elements.gfqol.modal.classList.remove('hidden');
+    },
+
+    closeGfqolModal() {
+        this.elements.gfqol.modal.classList.add('hidden');
+    },
+
+    handleAddGfqolPeriod(e) {
+        e.preventDefault();
+        const start = this.elements.gfqol.start.value;
+        const end = this.elements.gfqol.end.value;
+        
+        if (start > end) {
+            alert("Start date cannot be after end date.");
+            return;
+        }
+
+        const newPeriod = {
+            id: Date.now().toString(),
+            start,
+            end
+        };
+
+        this.state.periodTracking.periods.push(newPeriod);
+        this.state.periodTracking.periods.sort((a, b) => new Date(b.start) - new Date(a.start)); // Sort descending for UI
+        
+        this.elements.gfqol.addForm.reset();
+        this.saveUserData();
+        this.renderGfqolPeriods();
+        this.renderCalendar();
+    },
+
+    deleteGfqolPeriod(id) {
+        this.state.periodTracking.periods = this.state.periodTracking.periods.filter(p => p.id !== id);
+        this.saveUserData();
+        this.renderGfqolPeriods();
+        this.renderCalendar();
+    },
+    
+    handleToggleGfqolCalendar() {
+        this.state.periodTracking.showCalendar = this.elements.gfqol.showCalendar.checked;
+        this.saveUserData();
+        this.renderCalendar();
+    },
+
+    renderGfqolPeriods() {
+        const list = this.elements.gfqol.list;
+        list.innerHTML = '';
+        
+        if (!this.state.periodTracking.periods || this.state.periodTracking.periods.length === 0) {
+            list.innerHTML = '<li style="font-size:0.85rem; color:var(--text-muted); text-align:center; padding: 1rem 0;">No periods recorded yet.</li>';
+            return;
+        }
+
+        this.state.periodTracking.periods.forEach(p => {
+            const li = document.createElement('li');
+            li.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:var(--bg-color); border:1px solid var(--border-color); padding:0.5rem 1rem; border-radius:var(--radius-md); font-size:0.9rem;';
+            li.innerHTML = `
+                <span>${p.start} to ${p.end}</span>
+                <button class="icon-btn delete-period-btn" data-id="${p.id}" style="width:28px; height:28px;"><i class="fa-solid fa-trash-can" style="font-size:0.8rem;"></i></button>
+            `;
+            list.appendChild(li);
+        });
+
+        list.querySelectorAll('.delete-period-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                this.deleteGfqolPeriod(e.currentTarget.dataset.id);
+            });
+        });
+    },
+
+    getGfqolPhase(date) {
+        if (!this.state.periodTracking.showCalendar || !this.state.periodTracking.periods || this.state.periodTracking.periods.length === 0) {
+            return null;
+        }
+
+        const periods = [...this.state.periodTracking.periods].sort((a, b) => new Date(a.start) - new Date(b.start));
+        
+        const msPerDay = 1000 * 60 * 60 * 24;
+        let avgCycle = 28;
+        let avgDuration = 5;
+
+        if (periods.length >= 2) {
+            let totalCycleDays = 0;
+            let totalDurationDays = 0;
+            
+            for (let i = 0; i < periods.length - 1; i++) {
+                const s1 = new Date(periods[i].start);
+                const s2 = new Date(periods[i+1].start);
+                totalCycleDays += Math.round((s2 - s1) / msPerDay);
+            }
+            avgCycle = Math.round(totalCycleDays / (periods.length - 1));
+            
+            periods.forEach(p => {
+                const s = new Date(p.start);
+                const e = new Date(p.end);
+                totalDurationDays += Math.round((e - s) / msPerDay) + 1;
+            });
+            avgDuration = Math.round(totalDurationDays / periods.length);
+        } else if (periods.length === 1) {
+            const s = new Date(periods[0].start);
+            const e = new Date(periods[0].end);
+            avgDuration = Math.max(1, Math.round((e - s) / msPerDay) + 1);
+        }
+
+        const dateAtMidnight = new Date(date);
+        dateAtMidnight.setHours(0,0,0,0);
+
+        for (const p of periods) {
+            const pS = new Date(p.start); pS.setHours(0,0,0,0);
+            const pE = new Date(p.end); pE.setHours(0,0,0,0);
+            if (dateAtMidnight >= pS && dateAtMidnight <= pE) {
+                return 'bleed';
+            }
+        }
+
+        let refPeriod = periods[0];
+        for (let i = periods.length - 1; i >= 0; i--) {
+            const pS = new Date(periods[i].start); pS.setHours(0,0,0,0);
+            if (dateAtMidnight >= pS) {
+                refPeriod = periods[i];
+                break;
+            }
+        }
+
+        const refStart = new Date(refPeriod.start); refStart.setHours(0,0,0,0);
+        const refEnd = new Date(refPeriod.end); refEnd.setHours(0,0,0,0);
+        const refDuration = Math.round((refEnd - refStart) / msPerDay) + 1;
+        const refDiffDays = Math.round((dateAtMidnight.getTime() - refStart.getTime()) / msPerDay);
+        
+        if (refDiffDays < 0) return null; // Before Earliest Date
+
+        const dayOfCycle = refDiffDays % avgCycle;
+        
+        if (dateAtMidnight > refEnd) {
+            if (dayOfCycle >= 0 && dayOfCycle < avgDuration) {
+                return 'bleed';
+            }
+            
+            const isFirstCycleFromRef = refDiffDays < avgCycle;
+            const endOfPeriodDay = isFirstCycleFromRef ? refDuration : avgDuration;
+            
+            if (dayOfCycle >= endOfPeriodDay && dayOfCycle < endOfPeriodDay + 7) {
+                return 'glow';
+            }
+            
+            if (dayOfCycle >= avgCycle - 14 && dayOfCycle < avgCycle) {
+                return 'luteal';
+            }
+        }
+
+        return null;
     },
 
     // --- Helpers --- //

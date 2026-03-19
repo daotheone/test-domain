@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Proxima - Productivity Hub</title>
+    <title>dao hub</title>
     <!-- Modern Google Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,13 +20,14 @@
         
         <!-- Login Screen -->
         <section id="login-screen" class="screen active">
+            <button class="icon-btn theme-toggle" style="position: absolute; top: 1.5rem; right: 1.5rem;" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
             <div class="login-wrapper">
                 <div class="login-card glass-panel">
                     <div class="brand">
                         <i class="fa-solid fa-layer-group brand-icon"></i>
-                        <h1>Proxima</h1>
+                        <h1>dao hub</h1>
                     </div>
-                    <p class="subtitle">Welcome to your productivity hub</p>
+                    <p class="subtitle">Welcome to dao hub</p>
                     
                     <form id="login-form">
                         <div class="input-group">
@@ -49,13 +50,6 @@
                         </button>
                     </form>
                     
-                    <div class="login-hint">
-                        <p>Demo Accounts:</p>
-                        <ul>
-                            <li>user1 / pass1</li>
-                            <li>user2 / pass2</li>
-                        </ul>
-                    </div>
                 </div>
             </div>
         </section>
@@ -67,9 +61,12 @@
                 <div class="sidebar-header">
                     <div class="brand">
                         <i class="fa-solid fa-layer-group brand-icon"></i>
-                        <h2>Proxima</h2>
+                        <h2>dao hub</h2>
                     </div>
-                    <button id="mobile-menu-btn" class="icon-btn mobile-only"><i class="fa-solid fa-bars"></i></button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="icon-btn theme-toggle" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
+                        <button id="mobile-menu-btn" class="icon-btn mobile-only"><i class="fa-solid fa-bars"></i></button>
+                    </div>
                 </div>
                 
                 <div class="todo-section">
@@ -86,6 +83,18 @@
                     <ul id="todo-list" class="todo-list">
                         <!-- Todo items injected by JS -->
                     </ul>
+                </div>
+
+                <div class="apps-section">
+                    <div class="section-title">
+                        <h3><i class="fa-solid fa-shapes"></i> Apps</h3>
+                    </div>
+                    <div class="app-grid">
+                        <button class="app-icon" id="gfqol-app-btn" title="Period Tracker">
+                            <i class="fa-solid fa-heart" style="color: var(--danger);"></i>
+                            <span>Gf qol</span>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="user-profile">
@@ -174,9 +183,56 @@
                 </form>
             </div>
         </div>
+
+        <!-- Gf qol Modal -->
+        <div id="gfqol-modal" class="modal-overlay hidden">
+            <div class="modal glass-panel" style="max-height: 90vh; display: flex; flex-direction: column;">
+                <div class="modal-header">
+                    <h3><i class="fa-solid fa-heart" style="color:var(--danger)"></i> Period Tracker</h3>
+                    <button class="icon-btn close-gfqol-btn" type="button"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div style="overflow-y: auto; padding-right: 0.5rem; flex: 1;">
+                    <p class="subtitle" style="margin-bottom: 1rem;">Track phases to predict Bleed Time, Grumpy Time, and Glow Phase.</p>
+                    
+                    <form id="gfqol-add-form" class="form-row" style="align-items: flex-end; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color);">
+                        <div class="input-group" style="flex:1; margin-bottom: 0;">
+                            <label for="period-start">Start Date</label>
+                            <input type="date" id="period-start" required>
+                        </div>
+                        <div class="input-group" style="flex:1; margin-bottom: 0;">
+                            <label for="period-end">End Date</label>
+                            <input type="date" id="period-end" required>
+                        </div>
+                        <button type="submit" class="btn-primary" style="padding: 0.75rem;"><i class="fa-solid fa-plus"></i></button>
+                    </form>
+
+                    <div style="margin-bottom: 1.5rem;">
+                        <h4 style="margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Saved Periods</h4>
+                        <ul id="gfqol-period-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <!-- List injected by JS -->
+                        </ul>
+                    </div>
+
+                    <div class="toggle-group" style="margin: 1.5rem 0; display:flex; align-items:center; gap:0.75rem;">
+                        <label class="switch">
+                            <input type="checkbox" id="show-predicted-period" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span style="font-size:0.9rem; color:var(--text-muted);">Show predictions on calendar</span>
+                    </div>
+
+                    <div class="phase-info" style="font-size:0.85rem; color:var(--text-muted); background:var(--bg-color); padding:1rem; border-radius:var(--radius-md); border: 1px solid var(--border-color); margin-bottom:0.5rem;">
+                        <div style="margin-bottom:0.5rem;"><span style="color:var(--danger);">■ Bleed Time</span>: First days of cycle. (Be ready with heating pads and snacks!)</div>
+                        <div style="margin-bottom:0.5rem;"><span style="color:var(--warning);">■ Grumpy Time (Luteal)</span>: Last 14 days before next cycle. (May need extra patience and chocolate!)</div>
+                        <div><span style="color:var(--success);">■ Glow Phase</span>: Week after period ends. (Energy & mood peak for dates/outings!)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
     </div>
 
+    <script src="accounts.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
