@@ -845,27 +845,49 @@ const App = {
         let isDragging = false;
         let startX, startY, initialX, initialY;
 
-        header.addEventListener('mousedown', (e) => {
+        const dragStart = (e) => {
+            if (e.type === 'mousedown' && e.button !== 0) return;
             isDragging = true;
             
-            // Get current transform value dynamically
             const style = window.getComputedStyle(windowEl);
-            const matrix = new DOMMatrixReadOnly(style.transform);
-            initialX = matrix.m41;
-            initialY = matrix.m42;
+            let m41 = 0, m42 = 0;
+            if (style.transform && style.transform !== 'none') {
+                const matrixValues = style.transform.match(/matrix.*\((.+)\)/);
+                if (matrixValues) {
+                    const vals = matrixValues[1].split(', ');
+                    if(vals.length === 16) {
+                        m41 = parseFloat(vals[12]);
+                        m42 = parseFloat(vals[13]);
+                    } else {
+                        m41 = parseFloat(vals[4]);
+                        m42 = parseFloat(vals[5]);
+                    }
+                }
+            }
+            initialX = m41;
+            initialY = m42;
             
-            startX = e.clientX;
-            startY = e.clientY;
-            
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-        });
+            if(e.type === 'touchstart') {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                document.addEventListener('touchmove', onMouseMove, {passive: false});
+                document.addEventListener('touchend', onMouseUp);
+            } else {
+                startX = e.clientX;
+                startY = e.clientY;
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            }
+        };
 
         const onMouseMove = (e) => {
             if (!isDragging) return;
-            e.preventDefault();
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
+            e.preventDefault(); // prevent scrolling while dragging
+            let curX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            let curY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+            
+            const dx = curX - startX;
+            const dy = curY - startY;
             windowEl.style.transform = `translate(${initialX + dx}px, ${initialY + dy}px)`;
         };
 
@@ -874,7 +896,12 @@ const App = {
             isDragging = false;
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('touchmove', onMouseMove);
+            document.removeEventListener('touchend', onMouseUp);
         };
+
+        header.addEventListener('mousedown', dragStart);
+        header.addEventListener('touchstart', dragStart, {passive: false});
     },
 
     // --- Shortcuts Management --- //
@@ -972,26 +999,49 @@ const App = {
         let isDragging = false;
         let startX, startY, initialX, initialY;
 
-        header.addEventListener('mousedown', (e) => {
+        const dragStart = (e) => {
+            if (e.type === 'mousedown' && e.button !== 0) return;
             isDragging = true;
             
             const style = window.getComputedStyle(windowEl);
-            const matrix = new DOMMatrixReadOnly(style.transform);
-            initialX = matrix.m41;
-            initialY = matrix.m42;
+            let m41 = 0, m42 = 0;
+            if (style.transform && style.transform !== 'none') {
+                const matrixValues = style.transform.match(/matrix.*\((.+)\)/);
+                if (matrixValues) {
+                    const vals = matrixValues[1].split(', ');
+                    if(vals.length === 16) {
+                        m41 = parseFloat(vals[12]);
+                        m42 = parseFloat(vals[13]);
+                    } else {
+                        m41 = parseFloat(vals[4]);
+                        m42 = parseFloat(vals[5]);
+                    }
+                }
+            }
+            initialX = m41;
+            initialY = m42;
             
-            startX = e.clientX;
-            startY = e.clientY;
-            
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-        });
+            if(e.type === 'touchstart') {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                document.addEventListener('touchmove', onMouseMove, {passive: false});
+                document.addEventListener('touchend', onMouseUp);
+            } else {
+                startX = e.clientX;
+                startY = e.clientY;
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            }
+        };
 
         const onMouseMove = (e) => {
             if (!isDragging) return;
-            e.preventDefault();
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
+            e.preventDefault(); // prevent scrolling while dragging
+            let curX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            let curY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+            
+            const dx = curX - startX;
+            const dy = curY - startY;
             windowEl.style.transform = `translate(${initialX + dx}px, ${initialY + dy}px)`;
         };
 
@@ -1000,7 +1050,12 @@ const App = {
             isDragging = false;
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('touchmove', onMouseMove);
+            document.removeEventListener('touchend', onMouseUp);
         };
+
+        header.addEventListener('mousedown', dragStart);
+        header.addEventListener('touchstart', dragStart, {passive: false});
     },
 
     // --- Helpers --- //
