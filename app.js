@@ -98,6 +98,16 @@ const App = {
             addForm: document.getElementById('add-shortcut-form'),
             nameInput: document.getElementById('shortcut-name'),
             urlInput: document.getElementById('shortcut-url')
+        },
+        admin: {
+            appBtn: document.getElementById('admin-app-btn'),
+            window: document.getElementById('admin-window'),
+            header: document.getElementById('admin-header'),
+            closeBtn: document.querySelector('.close-admin-btn'),
+            list: document.getElementById('accounts-list'),
+            addForm: document.getElementById('add-account-form'),
+            usernameInput: document.getElementById('new-account-username'),
+            passwordInput: document.getElementById('new-account-password')
         }
     },
 
@@ -201,18 +211,33 @@ const App = {
             this.elements.shortcuts.addForm.addEventListener('submit', (e) => this.handleAddShortcut(e));
             this.initShortcutsDraggable();
         }
+
+        // Admin Widget
+        if (this.elements.admin.appBtn) {
+            this.elements.admin.appBtn.addEventListener('click', () => this.toggleAdminWindow());
+            this.elements.admin.closeBtn.addEventListener('click', () => this.closeAdminWindow());
+            this.elements.admin.addForm.addEventListener('submit', (e) => this.handleAddAccount(e));
+            this.initAdminDraggable();
+        }
     },
 
     // --- Authentication --- //
 
     async checkAuth() {
         const storedUser = localStorage.getItem('proxima_currentUser');
-        if (storedUser && ACCOUNTS && ACCOUNTS[storedUser]) {
-            this.state.currentUser = storedUser;
-            await this.showDashboard();
-        } else {
-            this.showLogin();
+        if (storedUser) {
+            const { data, error } = await supabase
+                .from('accounts')
+                .select('*')
+                .eq('username', storedUser)
+                .single();
+            if (data) {
+                this.state.currentUser = storedUser;
+                await this.showDashboard();
+                return;
+            }
         }
+        this.showLogin();
     },
 
     async handleLogin(e) {
@@ -220,7 +245,14 @@ const App = {
         const username = this.elements.login.username.value.trim();
         const password = this.elements.login.password.value;
 
-        if (typeof ACCOUNTS !== 'undefined' && ACCOUNTS[username] && ACCOUNTS[username] === password) {
+        const { data, error } = await supabase
+            .from('accounts')
+            .select('*')
+            .eq('username', username)
+            .eq('password', password)
+            .single();
+
+        if (data) {
             this.state.currentUser = username;
             localStorage.setItem('proxima_currentUser', username);
             this.elements.login.error.style.display = 'none';
@@ -256,6 +288,13 @@ const App = {
         // Update user profile info
         this.elements.dashboard.usernameDisplay.textContent = this.state.currentUser;
         this.elements.dashboard.userInitial.textContent = this.state.currentUser.charAt(0).toUpperCase();
+
+        if (this.state.currentUser === 'daotheone') {
+            if (this.elements.admin.appBtn) this.elements.admin.appBtn.classList.remove('hidden');
+        } else {
+            if (this.elements.admin.appBtn) this.elements.admin.appBtn.classList.add('hidden');
+            if (this.elements.admin.window) this.elements.admin.window.classList.add('hidden');
+        }
 
         await this.loadUserData();
         this.renderTodos();
@@ -1040,6 +1079,158 @@ const App = {
         const onMouseMove = (e) => {
             if (!isDragging) return;
             e.preventDefault(); // prevent scrolling while dragging
+            let curX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            let curY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+            
+            const dx = curX - startX;
+            const dy = curY - startY;
+            windowEl.style.transform = `translate(${initialX + dx}px, ${initialY + dy}px)`;
+        };
+
+        const onMouseUp = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.removeEventListener('touchmove', onMouseMove);
+            document.removeEventListener('touchend', onMouseUp);
+        };
+
+        header.addEventListener('mousedown', dragStart);
+        header.addEventListener('touchstart', dragStart, {passive: false});
+    },
+
+    // --- Admin Management --- //
+
+    toggleAdminWindow() {
+        if (this.elements.admin.window.classList.contains('hidden')) {
+            this.elements.admin.window.classList.remove('hidden');
+            this.loadAccounts();
+        } else {
+            this.closeAdminWindow();
+        }
+    },
+
+    closeAdminWindow() {
+        this.elements.admin.window.classList.add('hidden');
+    },
+
+    async loadAccounts() {
+        if (this.state.currentUser !== 'daotheone') return; // Double check
+
+        const { data, error } = await supabase.from('accounts').select('username');
+        if (error) {
+            console.error("Error loading accounts:", error);
+            return;
+        }
+        
+        this.elements.admin.list.innerHTML = '';
+        data.forEach(acc => {
+            const div = document.createElement('div');
+            div.className = 'shortcut-item'; 
+            div.style.justifyContent = 'space-between';
+            
+            div.innerHTML = `
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <i class="fa-solid fa-user" style="color:var(--text-main);"></i>
+                    <span>${this.escapeHtml(acc.username)}</span>
+                </div>
+            `;
+            
+            if (acc.username !== 'daotheone') {
+                const delBtn = document.createElement('button');
+                delBtn.className = 'delete-shortcut-btn';
+                delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    this.deleteAccount(acc.username);
+                };
+                div.appendChild(delBtn);
+            }
+            
+            this.elements.admin.list.appendChild(div);
+        });
+    },
+
+    async handleAddAccount(e) {
+        e.preventDefault();
+        const username = this.elements.admin.usernameInput.value.trim();
+        const password = this.elements.admin.passwordInput.value;
+        
+        if (!username || !password) return;
+
+        const { error } = await supabase
+            .from('accounts')
+            .insert([{ username, password }]);
+            
+        if (error) {
+            alert('Error adding account: ' + error.message);
+        } else {
+            this.elements.admin.addForm.reset();
+            this.loadAccounts();
+        }
+    },
+
+    async deleteAccount(username) {
+        if (!confirm(`Are you sure you want to delete ${username}?`)) return;
+        
+        const { error } = await supabase
+            .from('accounts')
+            .delete()
+            .eq('username', username);
+            
+        if (error) {
+            alert('Error deleting account: ' + error.message);
+        } else {
+            this.loadAccounts();
+        }
+    },
+
+    initAdminDraggable() {
+        const header = this.elements.admin.header;
+        const windowEl = this.elements.admin.window;
+        
+        let isDragging = false;
+        let startX, startY, initialX, initialY;
+
+        const dragStart = (e) => {
+            if (e.type === 'mousedown' && e.button !== 0) return;
+            isDragging = true;
+            
+            const style = window.getComputedStyle(windowEl);
+            let m41 = 0, m42 = 0;
+            if (style.transform && style.transform !== 'none') {
+                const matrixValues = style.transform.match(/matrix.*\((.+)\)/);
+                if (matrixValues) {
+                    const vals = matrixValues[1].split(', ');
+                    if(vals.length === 16) {
+                        m41 = parseFloat(vals[12]);
+                        m42 = parseFloat(vals[13]);
+                    } else {
+                        m41 = parseFloat(vals[4]);
+                        m42 = parseFloat(vals[5]);
+                    }
+                }
+            }
+            initialX = m41;
+            initialY = m42;
+            
+            if(e.type === 'touchstart') {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                document.addEventListener('touchmove', onMouseMove, {passive: false});
+                document.addEventListener('touchend', onMouseUp);
+            } else {
+                startX = e.clientX;
+                startY = e.clientY;
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            }
+        };
+
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
             let curX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
             let curY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
             
