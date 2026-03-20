@@ -205,17 +205,17 @@ const App = {
 
     // --- Authentication --- //
 
-    checkAuth() {
+    async checkAuth() {
         const storedUser = localStorage.getItem('proxima_currentUser');
         if (storedUser && ACCOUNTS && ACCOUNTS[storedUser]) {
             this.state.currentUser = storedUser;
-            this.showDashboard();
+            await this.showDashboard();
         } else {
             this.showLogin();
         }
     },
 
-    handleLogin(e) {
+    async handleLogin(e) {
         e.preventDefault();
         const username = this.elements.login.username.value.trim();
         const password = this.elements.login.password.value;
@@ -225,7 +225,7 @@ const App = {
             localStorage.setItem('proxima_currentUser', username);
             this.elements.login.error.style.display = 'none';
             this.elements.login.form.reset();
-            this.showDashboard();
+            await this.showDashboard();
         } else {
             this.elements.login.error.style.display = 'block';
             this.elements.login.password.value = '';
@@ -249,7 +249,7 @@ const App = {
         this.state.shortcuts = [];
     },
 
-    showDashboard() {
+    async showDashboard() {
         this.elements.screens.login.classList.remove('active');
         this.elements.screens.dashboard.classList.add('active');
         
@@ -257,44 +257,37 @@ const App = {
         this.elements.dashboard.usernameDisplay.textContent = this.state.currentUser;
         this.elements.dashboard.userInitial.textContent = this.state.currentUser.charAt(0).toUpperCase();
 
-        this.loadUserData();
+        await this.loadUserData();
         this.renderTodos();
         this.renderCalendar();
     },
 
     // --- Data Management --- //
 
-    loadUserData() {
-        const dataKey = `proxima_data_${this.state.currentUser}`;
-        const storedData = localStorage.getItem(dataKey);
-        
-        if (storedData) {
-            try {
-                const parsed = JSON.parse(storedData);
-                this.state.todos = parsed.todos || [];
-                this.state.events = parsed.events || [];
-                this.state.periodTracking = parsed.periodTracking || { periods: [], showCalendar: true };
-                
-                // Migrate old state shape if exists
-                if (this.state.periodTracking.start && !this.state.periodTracking.periods) {
-                    this.state.periodTracking.periods = [{
-                        id: Date.now().toString(),
-                        start: this.state.periodTracking.start,
-                        end: this.state.periodTracking.end
-                    }];
-                    delete this.state.periodTracking.start;
-                    delete this.state.periodTracking.end;
-                }
-                
-                this.state.shortcuts = parsed.shortcuts || [];
-            } catch (e) {
-                console.error("Error parsing stored data", e);
+    async loadUserData() {
+        if (!this.state.currentUser) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('user_data')
+                .select('*')
+                .eq('username', this.state.currentUser)
+                .single();
+
+            if (data) {
+                this.state.todos = data.todos || [];
+                this.state.events = data.events || [];
+                this.state.periodTracking = data.period_tracking || { periods: [], showCalendar: true };
+                this.state.shortcuts = data.shortcuts || [];
+            } else {
+                // Initialize defaults
                 this.state.todos = [];
                 this.state.events = [];
                 this.state.periodTracking = { periods: [], showCalendar: true };
                 this.state.shortcuts = [];
             }
-        } else {
+        } catch (e) {
+            console.error("Error loading user data from Supabase", e);
             this.state.todos = [];
             this.state.events = [];
             this.state.periodTracking = { periods: [], showCalendar: true };
@@ -302,16 +295,26 @@ const App = {
         }
     },
 
-    saveUserData() {
+    async saveUserData() {
         if (!this.state.currentUser) return;
         
-        const dataKey = `proxima_data_${this.state.currentUser}`;
-        localStorage.setItem(dataKey, JSON.stringify({
-            todos: this.state.todos,
-            events: this.state.events,
-            periodTracking: this.state.periodTracking,
-            shortcuts: this.state.shortcuts
-        }));
+        try {
+            const { error } = await supabase
+                .from('user_data')
+                .upsert({
+                    username: this.state.currentUser,
+                    todos: this.state.todos,
+                    events: this.state.events,
+                    period_tracking: this.state.periodTracking,
+                    shortcuts: this.state.shortcuts
+                });
+            
+            if (error) {
+                console.error("Error saving user data to Supabase:", error);
+            }
+        } catch (e) {
+            console.error("Exception saving user data to Supabase:", e);
+        }
     },
 
     // --- Todo Management --- //
