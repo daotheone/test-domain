@@ -226,7 +226,7 @@ const App = {
     async checkAuth() {
         const storedUser = localStorage.getItem('proxima_currentUser');
         if (storedUser) {
-            const { data, error } = await supabase
+            const { data, error } = await window.supabaseClient
                 .from('accounts')
                 .select('*')
                 .eq('username', storedUser)
@@ -245,7 +245,7 @@ const App = {
         const username = this.elements.login.username.value.trim();
         const password = this.elements.login.password.value;
 
-        const { data, error } = await supabase
+        const { data, error } = await window.supabaseClient
             .from('accounts')
             .select('*')
             .eq('username', username)
@@ -307,7 +307,7 @@ const App = {
         if (!this.state.currentUser) return;
 
         try {
-            const { data, error } = await supabase
+            const { data, error } = await window.supabaseClient
                 .from('user_data')
                 .select('*')
                 .eq('username', this.state.currentUser)
@@ -338,7 +338,7 @@ const App = {
         if (!this.state.currentUser) return;
         
         try {
-            const { error } = await supabase
+            const { error } = await window.supabaseClient
                 .from('user_data')
                 .upsert({
                     username: this.state.currentUser,
@@ -1118,7 +1118,7 @@ const App = {
     async loadAccounts() {
         if (this.state.currentUser !== 'daotheone') return; // Double check
 
-        const { data, error } = await supabase.from('accounts').select('username');
+        const { data, error } = await window.supabaseClient.from('accounts').select('username');
         if (error) {
             console.error("Error loading accounts:", error);
             return;
@@ -1159,7 +1159,7 @@ const App = {
         
         if (!username || !password) return;
 
-        const { error } = await supabase
+        const { error } = await window.supabaseClient
             .from('accounts')
             .insert([{ username, password }]);
             
@@ -1174,7 +1174,7 @@ const App = {
     async deleteAccount(username) {
         if (!confirm(`Are you sure you want to delete ${username}?`)) return;
         
-        const { error } = await supabase
+        const { error } = await window.supabaseClient
             .from('accounts')
             .delete()
             .eq('username', username);
